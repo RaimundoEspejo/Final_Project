@@ -1,11 +1,19 @@
 ---
-title: "Final_Project"
+title: "Final Project: Principles and Techniques of Reproducible Science"
 author: "Raimundo Espejo"
 date: "2025-04-07"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+    toc_float: true
 ---
 
-## Libraries and Data Frame
+## Introduction
+
+Refer to README file for more information.
+
+## Libraries and data frame
 
 Load necessary libraries
 ```{r}
@@ -27,7 +35,7 @@ Load the data to work with using relative path:
 Data_Frame_Allele_Frequency <- read_excel("Data_Frame_Allele_Frequency.xlsx", sheet = "Table")
 ```
 
-## Cochran-Armitage Trend test by Substrate
+## Trend test
 
 Since I have proportions of alternative alleles ("%AF"), I can apply the Cochran-Armitage trend test for each position and substrate (Eggs/Cells) combination to check if there's a significant trend over time.
 
@@ -38,9 +46,11 @@ Data_Frame_Allele_Frequency$success <- Data_Frame_Allele_Frequency$`%AF` # This 
 Data_Frame_Allele_Frequency$total <- 1  # Total column creation. Since %AF is a proportion, total is set to 1 to represent it as a proportion out of 1.
 ```
   
-## Apply Cochran-Armitage Trend Test for each Position and Substrate (I am not considering Isolates here)
+### Trend test for each position and substrate 
 
-This code applies the Cochran-Armitage Trend Test to analyze allele frequency trends over passages, grouped by Position_Genome and Passage_Substrate. The trend test will determine if there is a statistically significant trend in allele frequencies across passages for each position and substrate. The results are stored in results_trend_test, where each row contains a unique combination of Position_Genome and Passage_Substrate along with the associated trend test result stored in test_result:
+This code applies the Cochran-Armitage Trend Test to analyze allele frequency trends over passages, grouped by Position_Genome and Passage_Substrate. I am not considering viral Isolates here.
+
+The trend test will determine if there is a statistically significant trend in allele frequencies across passages for each position and substrate. The results are stored in results_trend_test, where each row contains a unique combination of Position_Genome and Passage_Substrate along with the associated trend test result stored in test_result:
 ```{r}
 results_trend_test <- Data_Frame_Allele_Frequency %>%
   group_by(Position_Genome, `Passage_Substrate`, `Isolate_ID`) %>% # This groups the data by Position_Genome, Passage_Substrate, and Isolate_ID. Each unique combination is treated as an individual group for analysis.
@@ -69,14 +79,14 @@ results_trend_test_significant <- results_trend_test_summary %>%
 results_trend_test_significant # Now I have just the 25 significant positions where a trend is present. 
 ```
 
-## Interpretation p_value column:
+### Interpretation p_value column
 
 In the context of the Cochran-Armitage Trend Test, the p_value column represents the probability that the observed trend in allele frequency over time (across passage numbers) could occur by random chance. The p_value indicates whether this trend is statistically significant. A low p-value suggests that the trend is unlikely due to random variation and may instead reflect a genuine pattern of change over time:
 
 - Small p-value (e.g., ≤ 0.05): Suggests a statistically significant trend in allele frequency over time (either increasing or decreasing). For these positions, we can infer that changes in allele frequency are unlikely to be random.
 - Large p-value (e.g., > 0.05): Implies that any observed trend might just be due to random variation, and thus there’s no strong evidence of a consistent change in allele frequency over time.
 
-## Interpretation Statistic column:
+### Interpretation statistic column
 
 The statistic column provides the test statistic for each position tested in the Cochran-Armitage Trend Test. The statistic indicates the strength and direction of the trend observed in allele frequency across the passage numbers (time points). It’s a numeric value calculated as part of the trend test to assess whether there’s a statistically significant increase or decrease in allele frequency over time:
 
@@ -84,7 +94,7 @@ The statistic column provides the test statistic for each position tested in the
 - A positive statistic usually indicates an upward trend, meaning the allele frequency is increasing over time.
 - A negative statistic suggests a downward trend, meaning the allele frequency is decreasing over time.
 
-## Creating a table to visualize the data in a nicer way:
+### Creating a table to visualize the data
 
 Add a column for significance that indicates "Yes" if the p-value is less than 0.05 and "No" if it is higher than 0.05:
 ```{r}
@@ -118,6 +128,8 @@ results_trend_test_significant_clean %>%
   )
 ```
 
+### Creating a plot to visualize the data
+
 Summarize Data for Trend Plot:
 ```{r}
 trend_plot_data <- Data_Frame_Allele_Frequency %>%
@@ -147,7 +159,7 @@ ggplot(trend_plot_data, aes(x = Passage_Number, y = mean_AF, color = Passage_Sub
   )
 ```
 
-## Cochran-Armitage Trend test by Isolate
+### Trend test by isolate
 
 Apply Cochran-Armitage Trend Test for each Position, Substrate, and Isolate
 In here, I am doing the same as before but I am including the Isolates separately to analyze them one by one.
@@ -209,7 +221,9 @@ ggplot(trend_plot_data_by_Isolate, aes(x = Passage_Number, y = mean_AF, color = 
   )
 ```
 
-## Logistic Regression Model by Substrate
+## Logistic regression model 
+
+### Logistic regression model by substrate
 
 Since I want to model the percentage of the alternative allele ("%AF") as a function of the "Passage Number" (time) and potentially "Passage Substrate" (to account for differences between Eggs and Cells). Since "%AF" represents proportions, I need to convert it into a form suitable for logistic regression. 
 
@@ -235,7 +249,7 @@ logistic_model <- glm(cbind(success, failure) ~ `Passage_Number` * `Passage_Subs
 summary(logistic_model) # View summary of the quasibinomial model. The summary(logistic_model) output will show me the coefficients for "Passage Number" and "Passage Substrate" as well as their interaction.
 ```
 
-## Extract and format coefficients
+### Extract and format coefficients
 
 Extract and tidy the model coefficients:
 ```{r}
@@ -273,7 +287,7 @@ tidy_logistic_model %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F)
 ```
 
-### Model Summary:
+### Model Summary
 
 - Dependent Variable: success (proportion of alternative alleles, %AF).
 - Independent Variables:
@@ -281,14 +295,14 @@ tidy_logistic_model %>%
   - Passage_Substrate (categorical: "Cells" vs. "Eggs").
   - Interaction term (Passage_Number:Passage_Substrate): Examines whether the effect of Passage_Number on success differs by substrate.
 
-### Interpretations:
+### Interpretations
 
 - (Intercept): Baseline log-odds of observing the alternative allele (success) in cells at passage 0.
 - Passage_Number: Passage number significantly increases the odds of success by ~43% per passage.
 - Passage_SubstrateEggs: Switching from Cells to Eggs increases odds by ~62.8%.
 - Passage_Number: In Eggs, the increase in success across passages is weaker than in Cells.
 
-## Get predicted probabilities for alternative allele frequency:
+### Get predicted probabilities for alternative allele frequency
 
 To visualize the predicted allele frequencies over time for each substrate, I can use the predict() function and plot the results:
 ```{r}
@@ -309,7 +323,7 @@ ggplot(Data_Frame_Allele_Frequency, aes(x = `Passage_Number`, y = success, color
   theme_minimal()
 ```
 
-## Define a function to run logistic regression. 
+### Define a function to run logistic regression 
 
 This function is designed to fit a logistic regression model to examine how Passage Number (time or passage) affects the probability of observing a "success" (e.g., an alternative allele) out of the total possible outcomes in each passage:
 ```{r}
@@ -326,7 +340,7 @@ eggs_data <- Data_Frame_Allele_Frequency %>%
   filter(`Passage_Substrate` == "Eggs")
 ```
 
-### Perform logistic regression for Cells and Eggs separately 
+### Perform logistic regression for cells and eggs separately 
 
 The purpose of this code is to generate separate logistic regression models for each substrate type—"Cells" and "Eggs." This allows me to examine the relationship between Passage Number (or another predictor) and the success rate (in this case, the %AF or alternative allele frequency) independently for each type of passage substrate:
 ```{r}
@@ -349,7 +363,7 @@ The exp() function calculates the exponential (or antilogarithm) of a number.  I
 - exp(0.05750) # exp(0.05750) ≈ 1.0592: This indicates that a one-unit increase in the predictor (e.g., Passage Number) increases the odds of observing the alternative allele by about 5.9%.
 - exp(0.86863) # exp(0.86863) ≈ 2.3835: Here, a one-unit increase in the predictor increases the odds by about 138.4%, suggesting a stronger relationship.
 
-## Logistic Regression Model by Isolate
+### Logistic regression model by isolate
 
 Scale success and failure to integer counts:
 ```{r}
@@ -387,7 +401,9 @@ ggplot(Data_Frame_Allele_Frequency, aes(x = `Passage_Number`, y = success, color
   theme_minimal()
 ```
 
-## Viral Load analysis - Mixed Effects Linear Model
+## Viral load analysis 
+
+### Mixed effects linear model for viral load
 
 Using mixed effects to examine the relationship between specific genome positions with mutations and the viral load over passages. This approach will allow us to assess the impact of specific mutations (via allele frequencies) on viral load while accounting for repeated measures across passages. 
 
@@ -401,7 +417,7 @@ viral_linear_mixed_model <- lmer(Viral_Load_SQ ~ `Passage_Number` * `%AF` * `Pas
 summary(viral_linear_mixed_model) # Summary of the linear mixed model
 ```
 
-### Interpretation: 
+### Interpretation 
 
 Look for significant fixed effects related to allele frequency, which would suggest that specific mutations are associated with changes in viral load.
 
@@ -421,7 +437,8 @@ posthoc_results <- emmeans(viral_linear_mixed_model, ~ Passage_Number | `%AF` * 
 summary(posthoc_results) # Summary of the post hoc analysis
 ```
 
-### Results:
+### Results
+
 - Higher Viral Load in Eggs: 
   - For %AF = 0.793 at passage number 4.76, eggs show a higher viral load (mean 9.66) compared to cells (mean 7.40). 
   - The confidence intervals do not overlap significantly, suggesting that viral replication may be more successful in eggs than in cells at this passage number and allele frequency.
@@ -430,7 +447,7 @@ summary(posthoc_results) # Summary of the post hoc analysis
   - This difference aligns with previous findings showing that the passage substrate significantly impacts viral load, with eggs generally supporting a higher load. 
   - This could indicate that eggs are a more favorable environment for viral replication under these conditions.
 
-## Plots for Viral Load
+### Other plots for viral load
 
 These visualizations will support interpreting trends and interactions from the linear mixed-effects model. Leverages the full range of %AF for more nuanced visualization.
 
