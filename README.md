@@ -9,4 +9,5 @@ Documents included in this repository:
 - Allele_Frequencies.R --> R scrypt used for the analysis
 - Final_Project.html --> Results in html format
 - Final_Project.Rmd --> Results in Rmd format
+- Final_Project_files --> Folder containing the figures produced by the Allele_Frequencies.R scrypt
 
