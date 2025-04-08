@@ -2,11 +2,15 @@
 title: "Final Project: Principles and Techniques of Reproducible Science"
 author: "Raimundo Espejo"
 date: "2025-04-07"
-output: 
+output:
   html_document:
     toc: true
     number_sections: true
     toc_float: true
+    always_allow_html: true
+  md_document:
+    variant: gfm
+  pdf_document:
 ---
 
 ## Introduction
