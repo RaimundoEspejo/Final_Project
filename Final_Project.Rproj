@@ -1,13 +1,406 @@
-Version: 1.0
+---
+title: "Final Project: Principles and Techniques of Reproducible Science"
+author: "Raimundo Espejo"
+date: "2025-04-07"
+output:
+  html_document:
+  md_document:
+    variant: gfm
+---
 
-RestoreWorkspace: Default
-SaveWorkspace: Default
-AlwaysSaveHistory: Default
+### [Link to Github](https://github.com/RaimundoEspejo/Final_Project.git)
 
-EnableCodeIndexing: Yes
-UseSpacesForTab: Yes
-NumSpacesForTab: 2
-Encoding: UTF-8
+## Introduction
 
-RnwWeave: Sweave
-LaTeX: pdfLaTeX
+Refer to README file for more information including rationale. 
+
+## Libraries and data frame
+
+Load necessary libraries (if not installed in your system, install them first)
+```{r}
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(broom)
+library(lme4)
+library(emmeans)
+library(purrr)
+```
+
+Load the data to work with using relative path:
+```{r}
+Data_Frame_Allele_Frequency <- read_excel("Data_Frame_Allele_Frequency.xlsx", sheet = "Table")
+```
+
+## Trend test
+
+Apply the Cochran-Armitage trend test for each position and substrate (Eggs/Cells) combination to check if there's a significant trend over time:
+```{r}
+Data_Frame_Allele_Frequency$success <- Data_Frame_Allele_Frequency$`%AF` # This assigns the values from the %AF column (which represents the proportion of the alternative allele) to a new column called success.Since %AF represents proportions, each entry in success is also a proportion (a decimal between 0 and 1) rather than an integer count.
+Data_Frame_Allele_Frequency$total <- 1  # Total column creation. Since %AF is a proportion, total is set to 1 to represent it as a proportion out of 1.
+```
+  
+### Trend test for each position and substrate 
+
+Analyze allele frequency trends over passages, grouped by Position_Genome and Passage_Substrate:
+```{r}
+results_trend_test <- Data_Frame_Allele_Frequency %>%
+  group_by(Position_Genome, `Passage_Substrate`, `Isolate_ID`) %>% # This groups the data by Position_Genome, Passage_Substrate, and Isolate_ID. Each unique combination is treated as an individual group for analysis.
+  summarise( # Creates a summary for each group considering what is below
+    test_result = list(
+      prop.trend.test(success * 100, rep(100, length(success)), score = `Passage_Number`)
+    )
+  )
+results_trend_test # This table is huge. I need to obtain the important information out of it.
+```
+
+Extract p-values and test statistics:
+```{r}
+results_trend_test_summary <- results_trend_test %>%
+  mutate(
+    p_value = sapply(test_result, function(x) x$p.value),
+    statistic = sapply(test_result, function(x) x$statistic)
+  )
+results_trend_test_summary # Now the 2 new columns are included. Still a huge table but now I can filter the important results.
+```
+
+Filter positions where the p-value is less than or equal to 0.05:
+```{r}
+results_trend_test_significant <- results_trend_test_summary %>%
+  filter(p_value <= 0.05)
+results_trend_test_significant # Now I have just the 25 significant positions where a trend is present. 
+```
+
+### Creating a table to visualize the data
+
+Add a column for significance:
+```{r}
+results_trend_test_significant$Significant_Trend <- ifelse(results_trend_test_significant$p_value <= 0.05, "Yes", "No")
+```
+
+Remove the test_result column because:
+```{r}
+results_trend_test_significant_clean <- results_trend_test_significant %>%
+  select(-test_result)
+```
+
+Sort the data frame by Position in ascending order: 
+```{r}
+results_trend_test_significant_clean <- results_trend_test_significant_clean %>%
+  arrange(Position_Genome)
+```
+
+Create the table with distinct row colors based on Passage Substrate:
+```{r}
+results_trend_test_significant_clean %>%
+  kable("html", caption = "Trend Test Results for Significant Positions", align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>%
+  row_spec(
+    which(results_trend_test_significant_clean$`Passage_Substrate` == "Cells"), 
+    background = "#D9EAD3"  # Light green for Cells
+  ) %>%
+  row_spec(
+    which(results_trend_test_significant_clean$`Passage_Substrate` == "Eggs"), 
+    background = "#F9CB9C"  # Light orange for Eggs
+  )
+```
+
+### Creating a plot to visualize the data
+
+Summarize Data for Trend Plot:
+```{r}
+trend_plot_data <- Data_Frame_Allele_Frequency %>%
+  group_by(Passage_Substrate, Passage_Number) %>%
+  summarise(
+    mean_AF = mean(`%AF`, na.rm = TRUE),
+    sd_AF = sd(`%AF`, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+Create the Trend Plot:
+```{r}
+ggplot(trend_plot_data, aes(x = Passage_Number, y = mean_AF, color = Passage_Substrate, group = Passage_Substrate)) +
+  geom_line(linewidth = 4) +
+  labs(
+    title = "Allele Frequency Trends by Passage Substrate",
+    x = "Passage Number",
+    y = "Mean Allele Frequency",
+    color = "Passage Substrate"
+  ) +
+  scale_x_continuous(breaks = 1:7) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.position = "top"
+  )
+```
+
+### Trend test by isolate
+
+Trend Test Grouped by Isolate, Position, and Substrate:
+```{r}
+results_trend_test_by_Isolate <- Data_Frame_Allele_Frequency %>%
+  group_by(Position_Genome, Passage_Substrate, Isolate_ID) %>%
+  summarise(
+    test_result = list(
+      prop.trend.test(success * 100, rep(100, length(success)), score = Passage_Number)
+    ),
+    .groups = "drop"
+  )
+```
+
+Extract key results from trend test:
+```{r}
+results_summary_by_Isolate <- results_trend_test_by_Isolate %>%
+  mutate(
+    p_value = map_dbl(test_result, ~ .x$p.value),
+    statistic = map_dbl(test_result, ~ .x$statistic)
+  )
+```
+
+Filter significant results:
+```{r}
+results_trend_test_significant_by_Isolate <- results_summary_by_Isolate %>%
+  filter(p_value <= 0.05)
+```
+
+Summarize data for trend plot:
+```{r}
+trend_plot_data_by_Isolate <- Data_Frame_Allele_Frequency %>%
+  group_by(Isolate_ID, Passage_Substrate, Passage_Number) %>%
+  summarise(
+    mean_AF = mean(`%AF`, na.rm = TRUE),
+    sd_AF = sd(`%AF`, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+Create the trend plot:
+```{r}
+ggplot(trend_plot_data_by_Isolate, aes(x = Passage_Number, y = mean_AF, color = Passage_Substrate, group = Passage_Substrate)) +
+  geom_line(size = 3) +
+  facet_wrap(~Isolate_ID) +
+  labs(
+    title = "Allele Frequency Trends by Isolate and Passage Substrate",
+    x = "Passage Number",
+    y = "Mean Allele Frequency",
+    color = "Passage Substrate"
+  ) +
+  scale_x_continuous(breaks = 1:7) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.position = "top"
+  )
+```
+
+## Logistic regression model 
+
+### Logistic regression model by substrate
+
+Create a "success" column (the number of alternative alleles) and a "failure" column (the remaining proportion):
+```{r}
+Data_Frame_Allele_Frequency$success <- Data_Frame_Allele_Frequency$`%AF`  # Proportion of alternative allele
+Data_Frame_Allele_Frequency$failure <- 1 - Data_Frame_Allele_Frequency$success  # Proportion of reference allele
+```
+
+Convert Passage Substrate to a factor for logistic regression:
+```{r}
+Data_Frame_Allele_Frequency$`Passage_Substrate` <- as.factor(Data_Frame_Allele_Frequency$`Passage_Substrate`)
+```
+
+Fitting a logistic regression model using the glm() function:
+```{r}
+logistic_model <- glm(cbind(success, failure) ~ `Passage_Number` * `Passage_Substrate`, 
+                      data = Data_Frame_Allele_Frequency, 
+                      family = quasibinomial)
+
+summary(logistic_model) # View summary of the quasibinomial model. The summary(logistic_model) output will show me the coefficients for "Passage Number" and "Passage Substrate" as well as their interaction.
+```
+
+### Extract and format coefficients
+
+Extract and tidy the model coefficients:
+```{r}
+tidy_logistic_model <- broom::tidy(logistic_model)
+```
+
+Add significance stars for interpretation:
+```{r}
+tidy_logistic_model <- tidy_logistic_model %>%
+  mutate(Significance = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  ))
+```
+
+Add an interpretation column with detailed explanations:
+```{r}
+tidy_logistic_model <- tidy_logistic_model %>%
+  mutate(Interpretation = case_when(
+    term == "(Intercept)" ~ "Baseline log-odds of success (%AF) in cells at passage 0. Significant at p<0.05",
+    term == "Passage_Number" ~ "Passage number has a significant positive effect. For each additional passage, the odds of success (alternative allele presence) increase by about 43%.",
+    term == "Passage_SubstrateEggs" ~ "Switching from Cells to Eggs significantly increases the odds of success by approximately 62.8% (exp(0.48751)).",
+    term == "Passage_Number:Passage_SubstrateEggs" ~ "The interaction term is significant. The positive effect of passage number on success is weaker in eggs compared to cells.",
+    TRUE ~ "N/A"
+  ))
+```
+
+Display the coefficients table with interpretation:
+```{r}
+tidy_logistic_model %>%
+  select(term, estimate, std.error, statistic, p.value, Significance, Interpretation) %>%
+  kable("html", caption = "Logistic Regression Model Coefficients with Interpretation", align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F)
+```
+
+### Get predicted probabilities for alternative allele frequency
+
+Visualize the predicted allele frequencies over time for each substrate:
+```{r}
+Data_Frame_Allele_Frequency$predicted_AF <- predict(logistic_model, type = "response")
+Data_Frame_Allele_Frequency$successAF <- as.integer(round(100*Data_Frame_Allele_Frequency$Allele_Frequency, 0))
+Data_Frame_Allele_Frequency$trialsAF <- 100
+```
+
+Plot observed vs predicted allele frequencies over time for each Passage Substrate:
+```{r}
+ggplot(Data_Frame_Allele_Frequency, aes(x = `Passage_Number`, y = success, color = `Passage_Substrate`)) +
+  geom_line(aes(y = predicted_AF), size = 3) +  # Increased line thickness
+  scale_x_continuous(breaks = seq(min(Data_Frame_Allele_Frequency$Passage_Number), 
+                                  max(Data_Frame_Allele_Frequency$Passage_Number), by = 1)) +  # X-axis with steps of 1
+  labs(title = "Observed vs Predicted Alternative Allele Frequency Over Passages",  # Add a title
+       y = "Alternative Allele Frequency", 
+       x = "Passage Number") +
+  theme_minimal()
+```
+
+### Define a function to run logistic regression 
+
+Fit a logistic regression model:
+```{r}
+get_logistic_results <- function(data) {
+  glm(cbind(success, total - success) ~ `Passage_Number`, data = data, family = quasibinomial)
+}
+```
+
+Filter for Cells and Eggs:
+```{r}
+cells_data <- Data_Frame_Allele_Frequency %>%
+  filter(`Passage_Substrate` == "Cells")
+eggs_data <- Data_Frame_Allele_Frequency %>%
+  filter(`Passage_Substrate` == "Eggs")
+```
+
+### Perform logistic regression for cells and eggs separately 
+
+Generate separate logistic regression models for each substrate type—"Cells" and "Eggs":
+```{r}
+cells_results <- get_logistic_results(cells_data)
+eggs_results <- get_logistic_results(eggs_data)
+```
+
+Summary of the logistic results:
+```{r}
+summary(cells_results)
+summary(eggs_results)
+```
+
+### Logistic regression model by isolate
+
+Scale success and failure to integer counts:
+```{r}
+Data_Frame_Allele_Frequency <- Data_Frame_Allele_Frequency %>%
+  mutate(success_counts = round(success * 100),  # Convert success to integer counts
+         failure_counts = round(failure * 100))  # Convert failure to integer counts
+```
+
+Fit a GLMM model with Isolate_ID as a random effect:
+```{r}
+glmm_model_by_Isolate <- glmer(
+  cbind(success_counts, failure_counts) ~ `Passage_Number` * `Passage_Substrate` + (1 | Isolate_ID),
+  data = Data_Frame_Allele_Frequency,
+  family = binomial(link = "logit")
+)
+
+summary(glmm_model_by_Isolate) # View the summary of the GLMM model
+```
+
+Get predicted probabilities for alternative allele frequency:
+```{r}
+Data_Frame_Allele_Frequency$predicted_AF_by_Isolate <- predict(glmm_model_by_Isolate, type = "response")
+```
+
+Plot observed vs predicted allele frequencies over time for each Passage Substrate:
+```{r}
+ggplot(Data_Frame_Allele_Frequency, aes(x = `Passage_Number`, y = success, color = `Passage_Substrate`)) +
+  geom_line(aes(y = predicted_AF_by_Isolate), size = 1.5) +  # Predicted trends
+  facet_wrap(~Isolate_ID) +  # Create separate panels for each isolate
+  scale_x_continuous(breaks = seq(min(Data_Frame_Allele_Frequency$Passage_Number), 
+                                  max(Data_Frame_Allele_Frequency$Passage_Number), by = 1)) +  # X-axis for all passages
+  labs(title = "Observed vs Predicted Alternative Allele Frequency Over Passages by Isolate",
+       y = "Alternative Allele Frequency",
+       x = "Passage Number") +
+  theme_minimal()
+```
+
+## Viral load analysis 
+
+### Mixed effects linear model for viral load
+
+Fit the linear mixed model:
+```{r}
+viral_linear_mixed_model <- lmer(Viral_Load_SQ ~ `Passage_Number` * `%AF` * `Passage_Substrate` + 
+                      (1 | Isolate_ID), data = Data_Frame_Allele_Frequency)
+
+summary(viral_linear_mixed_model) # Summary of the linear mixed model
+```
+
+Perform post hoc analysis:
+```{r}
+posthoc_results <- emmeans(viral_linear_mixed_model, ~ Passage_Number | `%AF` * `Passage_Substrate`)
+
+summary(posthoc_results) # Summary of the post hoc analysis
+```
+
+### Other plot for viral load
+
+Plot for Viral Load and Allele Frequency:
+```{r}
+Data_Frame_Allele_Frequency_long <- Data_Frame_Allele_Frequency %>%
+  pivot_longer(
+    cols = c(Viral_Load_SQ, Allele_Frequency),
+    names_to = "Variable",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Value = ifelse(Variable == "Allele_Frequency", Value * 12, Value),
+    Variable = recode(Variable, "Viral_Load_SQ" = "Viral Load", "Allele_Frequency" = "Allele Frequency")
+  )
+```
+
+Plot with no title in the legend:
+```{r}
+ggplot(Data_Frame_Allele_Frequency_long, aes(x = `Passage_Number`, y = Value, color = Variable)) +
+  geom_smooth(aes(group = Variable), size = 2, method = "lm", formula = y ~ splines::bs(x, 3), se = F) +
+  scale_y_continuous(
+    name = "Viral Load",
+    sec.axis = sec_axis(~ . * (1 / 12), name = "Allele Frequency (%)")
+  ) +
+  facet_grid(Passage_Substrate ~ Isolate_ID) +
+  labs(
+    title = "Trends in Viral Load and Allele Frequency Across Passages",
+    x = "Passage Number"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.title = element_blank(),  # Removes the legend title
+    legend.position = "top"
+  )
+```
