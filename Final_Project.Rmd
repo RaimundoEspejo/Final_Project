@@ -20,12 +20,10 @@ Load necessary libraries
 ```{r}
 library(readxl)
 library(ggplot2)
-library(gridExtra)
 library(dplyr)
 library(tidyr)
 library(kableExtra)
 library(broom)
-library(brms)
 library(lme4)
 library(emmeans)
 library(purrr)
