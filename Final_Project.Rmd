@@ -16,7 +16,7 @@ Refer to README file for more information including rationale.
 
 ## Libraries and data frame
 
-Load necessary libraries
+Load necessary libraries (if not installed in your system, install them first)
 ```{r}
 library(readxl)
 library(ggplot2)
