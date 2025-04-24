@@ -6,10 +6,8 @@ Four different viral isolates underwent seven serial passages in two distinct su
 ## Documents included in this repository:
 
 - Data_Frame_Allele_Frequency.xlsx --> Data frame used for the analysis
-- Allele_Frequencies.R --> R scrypt used for the analysis
-- Final_Project.html --> Results in html format
-- Final_Project.Rmd --> Results in Rmd format
-- Final_Project_files --> Folder containing the figures produced by the Allele_Frequencies.R scrypt
+- Final_Project.Rmd --> R scrypt used for the analysis
+- Final_Project_files --> Folder containing the figures
 
 ## Details and specifics of the pipeline:
 
@@ -197,4 +195,8 @@ Plot for Viral Load and Allele Frequency. Prepare data with a 'Variable' column 
 
 Plot with no title in the legend.
 
+<<<<<<< HEAD
 Plot continuous %AF for each substrate.
+=======
+Plot continuous %AF for each substrate.
+>>>>>>> 34d05aca7b2ed56dc454a986b019be8dc264efc1
