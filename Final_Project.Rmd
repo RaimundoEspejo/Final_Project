@@ -20,18 +20,11 @@ Load necessary libraries (if not installed in your system, install them first)
 ```{r}
 library(readxl)
 library(ggplot2)
-<<<<<<< HEAD
 library(kableExtra)
-library(dplyr)
-=======
 library(dplyr)
 library(tidyr)
 library(kableExtra)
-library(broom)
->>>>>>> 34d05aca7b2ed56dc454a986b019be8dc264efc1
 library(lme4)
-library(tidyr)
-library(broom)
 library(emmeans)
 library(purrr)
 ```
@@ -410,8 +403,3 @@ ggplot(Data_Frame_Allele_Frequency_long, aes(x = `Passage_Number`, y = Value, co
     legend.title = element_blank(),  # Removes the legend title
     legend.position = "top"
   )
-<<<<<<< HEAD
-```
-=======
-```
->>>>>>> 34d05aca7b2ed56dc454a986b019be8dc264efc1
