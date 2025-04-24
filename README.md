@@ -7,6 +7,7 @@ Four different viral isolates underwent seven serial passages in two distinct su
 
 - Data_Frame_Allele_Frequency.xlsx --> Data frame used for the analysis
 - Final_Project.Rmd --> R scrypt used for the analysis
+- Final_Project.html --> html file compiling the results
 - Final_Project_files --> Folder containing the figures
 
 ## Details and specifics of the pipeline:
