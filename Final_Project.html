@@ -595,50 +595,29 @@ to Github</a></h3>
 <p>Load necessary libraries</p>
 <pre class="r"><code>library(readxl)
 library(ggplot2)
-library(gridExtra)
+library(kableExtra)
 library(dplyr)</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:gridExtra&#39;:
+<pre><code>## The following object is masked from &#39;package:kableExtra&#39;:
 ## 
-##     combine</code></pre>
+##     group_rows</code></pre>
 <pre><code>## The following objects are masked from &#39;package:stats&#39;:
 ## 
 ##     filter, lag</code></pre>
 <pre><code>## The following objects are masked from &#39;package:base&#39;:
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(tidyr)
-library(kableExtra)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;kableExtra&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     group_rows</code></pre>
-<pre class="r"><code>library(broom)
-library(brms)</code></pre>
-<pre><code>## Loading required package: Rcpp</code></pre>
-<pre><code>## Loading &#39;brms&#39; package (version 2.21.0). Useful instructions
-## can be found by typing help(&#39;brms&#39;). A more detailed introduction
-## to the package is available through vignette(&#39;brms_overview&#39;).</code></pre>
-<pre><code>## 
-## Attaching package: &#39;brms&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:stats&#39;:
-## 
-##     ar</code></pre>
 <pre class="r"><code>library(lme4)</code></pre>
 <pre><code>## Loading required package: Matrix</code></pre>
+<pre class="r"><code>library(tidyr)</code></pre>
 <pre><code>## 
-## Attaching package: &#39;Matrix&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:tidyr&#39;:
+## Attaching package: &#39;tidyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:Matrix&#39;:
 ## 
 ##     expand, pack, unpack</code></pre>
-<pre><code>## 
-## Attaching package: &#39;lme4&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:brms&#39;:
-## 
-##     ngrps</code></pre>
-<pre class="r"><code>library(emmeans)</code></pre>
+<pre class="r"><code>library(broom)
+library(emmeans)</code></pre>
 <pre><code>## Welcome to emmeans.
 ## Caution: You lose important information if you filter this package&#39;s results.
 ## See &#39;? untidy&#39;</code></pre>
