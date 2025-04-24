@@ -194,9 +194,3 @@ Plot continuous %AF with lines for substrate. Each row shows Cells and Eggs with
 Plot for Viral Load and Allele Frequency. Prepare data with a 'Variable' column for color mapping.
 
 Plot with no title in the legend.
-
-<<<<<<< HEAD
-Plot continuous %AF for each substrate.
-=======
-Plot continuous %AF for each substrate.
->>>>>>> 34d05aca7b2ed56dc454a986b019be8dc264efc1
